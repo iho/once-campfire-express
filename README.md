@@ -41,9 +41,9 @@ with four hardware threads allocated to each app.
 | Search | 435 | 315 | 305 | 1,294 | 1,156 | 7,053 | 33,299 |
 | Post a message | 273 | 154 | 137 | 256 | 801 | 4,767 | 6,896 |
 
-The separate [OxCaml port](https://github.com/iho/once-campfire-oxcaml) is under active
-development. It is intentionally omitted from this results table until the current source passes
-the full canonical-seed preflight and a comparable Linux throughput run.
+The separate [OxCaml port](https://github.com/iho/once-campfire-oxcaml) has passed the full
+canonical-seed HTTP/Cable preflight in two rounds. It remains omitted from this results table
+until a comparable Linux throughput run is complete.
 
 At 100 WebSocket connections and five messages/second, median delivery to every
 connection was 24 ms for Rails and 14 ms for Express. Every message reached every
