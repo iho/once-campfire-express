@@ -30,6 +30,15 @@ EXPRESS_IMAGE=once-campfire-express:bench MOJO_IMAGE=once-campfire-mojo:bench \
   --routes room_show,messages_page,sidebar,search,profile,user,account --duration 4
 ```
 
+## Reproducible Linux run
+
+The GitHub Actions **Linux benchmark** workflow builds the seed and production images from
+pinned source revisions, then runs Express and OxCaml separately on disjoint two-CPU server
+and client sets. Dispatch it from the Actions tab; the uploaded artifact contains each app's
+raw samples and `summary.json`. GitHub-hosted runners are not the Ryzen reference machine, so
+these results are useful for checking the harness and clean-build behavior, not for updating
+the published performance table.
+
 ## Mojo target
 
 Install Mojo using the [official installation instructions](https://mojolang.org/install/).
