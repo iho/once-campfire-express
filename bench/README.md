@@ -37,7 +37,9 @@ pinned source revisions, then runs Express and OxCaml separately on disjoint two
 and client sets. Dispatch it from the Actions tab or push a `benchmark-oxcaml-*` tag; the
 uploaded artifact contains each app's raw samples and `summary.json`. GitHub-hosted runners are
 not the Ryzen reference machine, so these results are useful for checking the harness and
-clean-build behavior, not for updating the published performance table.
+clean-build behavior, not for updating the published performance table. On Linux, the OxCaml
+container retains its image's `campfire` user and gets a supplemental runner group for the
+disposable bind mounts; Express matches the runner UID for fixture writes.
 
 ## Mojo target
 

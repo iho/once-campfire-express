@@ -222,12 +222,19 @@ begin
         metadata[:topology][app][:optimization] = image_labels.fetch("org.modular.mojo.optimization", "unknown")
       end
       config["WEB_WORKERS"] ||= linux_host ? "3" : "1" if app == "express"
+      allow_container_group_write(data) if app == "oxcaml" && linux_host
       command = ["docker", "run", "-d", "--name", container]
       if linux_host
         command.concat(["--network", "host"])
-        # The seed and per-round mounts are created by the host runner. Match its
-        # UID/GID so non-root app images can write the SQLite fixture and logs.
-        command.concat(["--user", "#{Process.uid}:#{Process.gid}"])
+        if app == "oxcaml"
+          # Preserve the image's campfire UID. Grant its supplemental host GID
+          # access to the disposable, host-owned bind mounts prepared above.
+          command.concat(["--group-add", Process.gid.to_s])
+        else
+          # Express runs as node, but the seed and per-round mounts are owned by
+          # the host runner, so match its UID/GID for fixture writes.
+          command.concat(["--user", "#{Process.uid}:#{Process.gid}"])
+        end
       else
         command.concat(["-p", "127.0.0.1:#{options[:port]}:#{config.fetch('HTTP_PORT')}"])
       end

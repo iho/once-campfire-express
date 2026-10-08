@@ -1,4 +1,5 @@
 require "fileutils"
+require "find"
 require "json"
 require "open3"
 require "optparse"
@@ -79,6 +80,15 @@ module BenchmarkSupport
     # Copy through SQLite so a fixture never inherits stale -wal/-shm sidecars.
     run("sqlite3", source_db, ".backup #{target_db}")
     FileUtils.cp_r(File.join(seed, "storage"), File.join(destination, "files"))
+  end
+
+  def allow_container_group_write(path)
+    Find.find(path) do |entry|
+      stat = File.stat(entry)
+      mode = stat.mode & 0o7777
+      mode |= stat.directory? ? 0o2070 : 0o0060
+      File.chmod(mode, entry)
+    end
   end
 
   def prepare_assets(image)

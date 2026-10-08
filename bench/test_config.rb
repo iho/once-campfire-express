@@ -1,5 +1,6 @@
 require "minitest/autorun"
 require_relative "support"
+require "tmpdir"
 
 class BenchmarkConfigTest < Minitest::Test
   HELPERS = Object.new.extend(BenchmarkSupport)
@@ -26,6 +27,25 @@ class BenchmarkConfigTest < Minitest::Test
     ["0", "65", "four", true].each do |value|
       assert_raises(ArgumentError) do
         HELPERS.oxcaml_domain_count(cpu_set: "0-3", linux_host: true, overrides: {"WEB_WORKERS" => value})
+      end
+    end
+  end
+
+  def test_container_group_write_preserves_owner_access_and_sets_directory_inheritance
+    Dir.mktmpdir("benchmark-group-access-") do |directory|
+      nested = File.join(directory, "db")
+      FileUtils.mkdir_p(nested)
+      database = File.join(nested, "production.sqlite3")
+      File.write(database, "fixture")
+
+      HELPERS.allow_container_group_write(directory)
+
+      assert_equal(0o0070, File.stat(directory).mode & 0o0070)
+      assert_equal(0o0070, File.stat(nested).mode & 0o0070)
+      assert_equal(0o0060, File.stat(database).mode & 0o0060)
+      if RUBY_PLATFORM.include?("linux")
+        assert_equal(0o2000, File.stat(directory).mode & 0o2000)
+        assert_equal(0o2000, File.stat(nested).mode & 0o2000)
       end
     end
   end
