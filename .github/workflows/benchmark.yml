@@ -1,6 +1,9 @@
 name: Linux benchmark
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - benchmark-oxcaml-*
 permissions:
   contents: read
 jobs:
