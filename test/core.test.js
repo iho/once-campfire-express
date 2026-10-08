@@ -320,7 +320,12 @@ test("64 independent Rails canonical editor plaintext examples", () => {
   for (const example of vectors.cases)
     assert.equal(plainText(example.body), example.plain_text, example.name);
 });
-import { storeUpload, blobUrl, representationUrl, purgeBlob } from "../src/storage.js";
+import {
+  storeUpload,
+  blobUrl,
+  representationUrl,
+  purgeBlob,
+} from "../src/storage.js";
 import { messageData } from "../src/rendering.js";
 test("inline native attachments preserve rich text ownership, private authorization and cleanup", () => {
   const privateMessage = domain.createMessage(
