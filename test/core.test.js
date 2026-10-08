@@ -320,7 +320,7 @@ test("64 independent Rails canonical editor plaintext examples", () => {
   for (const example of vectors.cases)
     assert.equal(plainText(example.body), example.plain_text, example.name);
 });
-import { storeUpload, blobUrl, purgeBlob } from "../src/storage.js";
+import { storeUpload, blobUrl, representationUrl, purgeBlob } from "../src/storage.js";
 import { messageData } from "../src/rendering.js";
 test("inline native attachments preserve rich text ownership, private authorization and cleanup", () => {
   const privateMessage = domain.createMessage(
@@ -374,7 +374,17 @@ test("inline native attachments preserve rich text ownership, private authorizat
     videoMessage.id,
     "attachment",
   );
-  assert.match(String(messageData([videoMessage])[0].HTML), /preload="none"/);
+  const videoHtml = String(messageData([videoMessage])[0].HTML);
+  const videoBlob = get(
+    "SELECT active_storage_blobs.* FROM active_storage_blobs JOIN active_storage_attachments ON active_storage_attachments.blob_id = active_storage_blobs.id WHERE active_storage_attachments.record_id = ? AND active_storage_attachments.record_type = 'Message'",
+    videoMessage.id,
+  );
+  assert.match(videoHtml, /preload="none"/);
+  assert.ok(
+    videoHtml.includes(
+      `poster="${representationUrl(videoBlob, [1200, 800], "webp")}"`,
+    ),
+  );
   domain.deleteMessage(message, { broadcast: false });
   assert.equal(
     get(

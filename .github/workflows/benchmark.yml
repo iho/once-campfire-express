@@ -49,6 +49,8 @@ jobs:
       - run: docker build --tag once-campfire-express:benchmark .
       - run: docker build --tag once-campfire-oxcaml:benchmark once-campfire-oxcaml
       - name: Benchmark Express
+        id: express_benchmark
+        continue-on-error: true
         run: >-
           ruby bench/compare.rb --apps express --rounds 2 --duration 8
           --concurrencies 16 --cpus 0-1 --client-cpus 2-3
@@ -68,6 +70,9 @@ jobs:
           --output tmp/bench/linux/oxcaml
         env:
           OXCAML_IMAGE: once-campfire-oxcaml:benchmark
+      - name: Require Express benchmark to pass
+        if: ${{ steps.express_benchmark.outcome != 'success' }}
+        run: exit 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
