@@ -29,7 +29,7 @@ jobs:
           path: once-campfire-elixir
       - uses: actions/checkout@v4
         with:
-          repository: basecamp/once-campfire-oxcaml
+          repository: iho/once-campfire-oxcaml
           ref: a67513b4f4a8d71749b0c45dcde462b012e73ccf
           path: once-campfire-oxcaml
           submodules: true
