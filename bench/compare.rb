@@ -201,17 +201,7 @@ begin
       if app == "oxcaml"
         config["CAMPFIRE_STORAGE_PATH"] = "/rails/storage"
         config["HTTP_PORT"] = options[:port].to_s
-        cpu_count = options[:cpus].split(",").sum do |set|
-          first, last = set.split("-", 2).map { |cpu| Integer(cpu, 10) }
-          last ||= first
-          raise "invalid CPU set: #{options[:cpus]}" if first.negative? || last < first
-
-          last - first + 1
-        end
-        default_domains = linux_host ? cpu_count : 1
-        domains = Integer(app_overrides.fetch("WEB_WORKERS", default_domains))
-        raise "OXCAML_BENCH_ENV WEB_WORKERS must be between 1 and 64" unless (1..64).cover?(domains)
-
+        domains = oxcaml_domain_count(cpu_set: options[:cpus], linux_host: linux_host, overrides: app_overrides)
         config["WEB_WORKERS"] = domains.to_s
       end
       if app == "django"

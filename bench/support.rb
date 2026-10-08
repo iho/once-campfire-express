@@ -7,6 +7,34 @@ module BenchmarkSupport
   ROOT = File.expand_path("..", __dir__)
   WORK = File.join(ROOT, "tmp/rails-optimization")
 
+  def cpuset_cpu_count(cpu_set)
+    ranges = cpu_set.split(",", -1).map do |segment|
+      first, last = segment.split("-", 2)
+      first = Integer(first, 10)
+      last = last ? Integer(last, 10) : first
+      raise ArgumentError, "invalid CPU set: #{cpu_set}" if first.negative? || last < first
+
+      [first, last]
+    end.sort_by(&:first)
+    raise ArgumentError, "overlapping CPU set: #{cpu_set}" if ranges.each_cons(2).any? { |left, right| right.first <= left.last }
+
+    ranges.sum { |first, last| last - first + 1 }
+  rescue ArgumentError, TypeError
+    raise ArgumentError, "invalid CPU set: #{cpu_set}"
+  end
+
+  def oxcaml_domain_count(cpu_set:, linux_host:, overrides:)
+    default = linux_host ? cpuset_cpu_count(cpu_set) : 1
+    domains = begin
+      Integer(overrides.fetch("WEB_WORKERS", default))
+    rescue ArgumentError, TypeError
+      raise ArgumentError, "OXCAML_BENCH_ENV WEB_WORKERS must be an integer between 1 and 64"
+    end
+    raise ArgumentError, "OXCAML_BENCH_ENV WEB_WORKERS must be between 1 and 64" unless (1..64).cover?(domains)
+
+    domains
+  end
+
   def parse_options(description, defaults)
     options = { baseline: nil, seed: nil, image: "campfire-reference:app", cpus: "8-11", rounds: 2 }.merge(defaults)
     parser = OptionParser.new do |parser|

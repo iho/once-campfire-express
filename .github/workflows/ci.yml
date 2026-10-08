@@ -20,5 +20,6 @@ jobs:
           ruby-version: '3.4'
       - run: ruby -c bench/compare.rb
       - run: ruby bench/compare.rb --help
+      - run: ruby bench/test_config.rb
       - run: docker build -t once-campfire-express:test .
       - run: docker run --rm --tmpfs /rails/tmp:mode=1777 once-campfire-express:test npm test
