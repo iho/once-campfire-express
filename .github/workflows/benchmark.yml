@@ -1,0 +1,76 @@
+name: Linux benchmark
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/checkout@v4
+        with:
+          repository: basecamp/once-campfire-rust
+          ref: 5eb6d2d3b3090aa1680b80e19d077455fe413119
+          path: once-campfire-rust
+          submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          repository: basecamp/once-campfire-verification
+          ref: 06880b19f646d93b1f2e18a716cf705ad229b64c
+          path: once-campfire-verification
+      - uses: actions/checkout@v4
+        with:
+          repository: basecamp/once-campfire-elixir
+          ref: 8b3cc3fb4e730351d8267a1573b86c45198f76d0
+          path: once-campfire-elixir
+      - uses: actions/checkout@v4
+        with:
+          repository: basecamp/once-campfire-oxcaml
+          ref: a67513b4f4a8d71749b0c45dcde462b012e73ccf
+          path: once-campfire-oxcaml
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y sqlite3
+      - run: cargo build --release --manifest-path once-campfire-verification/loadgen/Cargo.toml
+      - run: once-campfire-rust/parity/bin/reference build
+      - run: once-campfire-rust/parity/bin/seed build default
+      - run: npm ci
+      - run: docker build --tag once-campfire-express:benchmark .
+      - run: docker build --tag once-campfire-oxcaml:benchmark once-campfire-oxcaml
+      - name: Benchmark Express
+        run: >-
+          ruby bench/compare.rb --apps express --rounds 2 --duration 8
+          --concurrencies 16 --cpus 0-1 --client-cpus 2-3
+          --seed once-campfire-rust/parity/.seed/default
+          --loadgen once-campfire-verification/loadgen/target/release/loadgen
+          --env-file once-campfire-elixir/parity/reference.env
+          --output tmp/bench/linux/express
+        env:
+          EXPRESS_IMAGE: once-campfire-express:benchmark
+      - name: Benchmark OxCaml
+        run: >-
+          ruby bench/compare.rb --apps oxcaml --rounds 2 --duration 8
+          --concurrencies 16 --cpus 0-1 --client-cpus 2-3
+          --seed once-campfire-rust/parity/.seed/default
+          --loadgen once-campfire-verification/loadgen/target/release/loadgen
+          --env-file once-campfire-elixir/parity/reference.env
+          --output tmp/bench/linux/oxcaml
+        env:
+          OXCAML_IMAGE: once-campfire-oxcaml:benchmark
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-benchmark-results
+          path: tmp/bench/linux/
+          if-no-files-found: ignore
