@@ -254,7 +254,7 @@ export function render(req, screen, extra = {}) {
         : ["room", "welcome"].includes(screen)
           ? "sidebar"
           : screen,
-    Title: "Campfire",
+    Title: screen === "account" ? "Account settings" : "Campfire",
     Frame: !!req.get?.("Turbo-Frame"),
     Origin: `${req.protocol || "http"}://${req.get?.("host") || "localhost"}`,
     CSRF: req.csrfToken || "",

@@ -174,6 +174,7 @@ test("retained frontend compiles room/login/sidebar/profile/admin screens", () =
     "custom-styles",
   ])
     assert.ok(render(req, screen, { Subject: { ID: 0 } }).includes("Campfire"));
+  assert.match(render(req, "account"), /<title>Account settings<\/title>/);
   assert.ok(
     render(req, "room", {
       Room: {
