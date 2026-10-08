@@ -225,6 +225,9 @@ begin
       command = ["docker", "run", "-d", "--name", container]
       if linux_host
         command.concat(["--network", "host"])
+        # The seed and per-round mounts are created by the host runner. Match its
+        # UID/GID so non-root app images can write the SQLite fixture and logs.
+        command.concat(["--user", "#{Process.uid}:#{Process.gid}"])
       else
         command.concat(["-p", "127.0.0.1:#{options[:port]}:#{config.fetch('HTTP_PORT')}"])
       end
@@ -1697,6 +1700,10 @@ begin
   puts JSON.pretty_generate(summary)
   completed = true
 ensure
+  unless completed
+    logs, status = Open3.capture2e("docker", "logs", container)
+    warn "#{container} logs:\n#{logs}" if status.success? && !logs.empty?
+  end
   unless ENV["BENCH_KEEP_FAILED"] == "1" && !completed
     remove_container(container)
     remove_container(redis_container)
