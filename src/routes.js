@@ -994,6 +994,15 @@ function registerUsers(app) {
       Subject: userData(user),
       CanAdminister: req.user.role === 1,
       AvatarURL: avatar(user.id, user.updated_at),
+      Transfer:
+        origin(req) +
+        "/session/transfers/" +
+        rails.signedId(
+          "User",
+          user.id,
+          "transfer",
+          new Date(Date.now() + 4 * 3600000).toISOString(),
+        ),
     });
   });
   app.all("/users/:userId/ban", login, admin, (req, res) => {

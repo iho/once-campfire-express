@@ -269,6 +269,43 @@ test("HTTP actual cookie login, CSRF, rooms, search, posting and private denial"
       },
     });
     assert.equal(response.status, 302);
+
+    let adminLogin = await fetch(base + "/session/new");
+    const adminLoginHtml = await adminLogin.text();
+    const adminCsrf = adminLoginHtml.match(
+      /name="csrf-token" content="([^"]+)"/,
+    )[1];
+    let adminCookie = adminLogin.headers
+      .getSetCookie()
+      .map((value) => value.split(";")[0])
+      .join("; ");
+    adminLogin = await fetch(base + "/session", {
+      method: "POST",
+      redirect: "manual",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        email_address: admin.email_address,
+        password: "password",
+        authenticity_token: adminCsrf,
+      }),
+    });
+    assert.equal(adminLogin.status, 302);
+    adminCookie +=
+      "; " +
+      adminLogin.headers
+        .getSetCookie()
+        .map((value) => value.split(";")[0])
+        .join("; ");
+    response = await fetch(base + "/users/" + member.id, {
+      headers: { cookie: adminCookie },
+    });
+    assert.equal(response.status, 200);
+    const publicProfile = await response.text();
+    assert.match(publicProfile, /\/session\/transfers\//);
+    assert.match(publicProfile, /\/qr_code\//);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

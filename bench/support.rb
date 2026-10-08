@@ -44,7 +44,12 @@ module BenchmarkSupport
   def prepare_storage(seed, destination)
     FileUtils.rm_rf(destination)
     FileUtils.mkdir_p(destination)
-    FileUtils.cp_r(File.join(seed, "db"), File.join(destination, "db"))
+    db_directory = File.join(destination, "db")
+    FileUtils.mkdir_p(db_directory)
+    source_db = File.join(seed, "db/production.sqlite3")
+    target_db = File.join(db_directory, "production.sqlite3")
+    # Copy through SQLite so a fixture never inherits stale -wal/-shm sidecars.
+    run("sqlite3", source_db, ".backup #{target_db}")
     FileUtils.cp_r(File.join(seed, "storage"), File.join(destination, "files"))
   end
 

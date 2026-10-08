@@ -34,3 +34,14 @@ higher tail latency than Rails; the table reports the median, not a capacity lim
 The unchanged common load generator and original seed hashes are recorded in ignored
 scratch evidence. Benchmark orchestration is Ruby, and server processes share four
 hardware threads; Express uses three HTTP workers and its primary job/fanout process.
+
+The in-progress OxCaml port has a separate production-image verification record. Its
+authenticated `POST /unfurl_link` was exercised against `https://ogp.me/` in the
+production image and returned the expected title, canonical URL, image, and description;
+its image MIME check and URL validation were part of that request. This is a focused
+live-site smoke, not broad OpenGraph compatibility coverage. Fetches reject non-public
+resolved addresses, pin the selected address for each curl request, follow at most ten
+HTTP(S) requests, cap bodies at 5 MiB, and use a 15-second shared fetch deadline. DNS
+rebinding, varied public sites, and full parity with Rails' unfurling edge cases remain
+unverified. The OxCaml route preflight separately checks CSRF rejection, private-loopback
+denial, and missing-URL handling.

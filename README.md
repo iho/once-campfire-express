@@ -20,7 +20,9 @@ configure `TRUSTED_PROXIES` with its addresses.
 
 For local development, use the pinned Node version, run `npm ci`,
 `npm run build:assets`, set `SECRET_KEY_BASE`, then `npm start`. Run `npm test` for
-native integration and independent Rails golden-vector tests. The public Rails
+native integration and independent Rails golden-vector tests. The OxCaml benchmark
+port's local development setup also requires `opam` with the pinned OxCaml switch
+and `curl` for outbound link previews. The public Rails
 reference is immutable and pinned at `659f957`.
 
 See [verification](plans/contracts.md) for tested workflows and remaining limits,
@@ -38,6 +40,10 @@ with four hardware threads allocated to each app.
 | Sidebar | 552 | 615 | 715 | 4,125 | 1,275 | 19,753 | 34,672 |
 | Search | 435 | 315 | 305 | 1,294 | 1,156 | 7,053 | 33,299 |
 | Post a message | 273 | 154 | 137 | 256 | 801 | 4,767 | 6,896 |
+
+The separate [OxCaml port](https://github.com/iho/once-campfire-oxcaml) is under active
+development. It is intentionally omitted from this results table until the current source passes
+the full canonical-seed preflight and a comparable Linux throughput run.
 
 At 100 WebSocket connections and five messages/second, median delivery to every
 connection was 24 ms for Rails and 14 ms for Express. Every message reached every
