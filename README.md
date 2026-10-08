@@ -42,8 +42,13 @@ with four hardware threads allocated to each app.
 | Post a message | 273 | 154 | 137 | 256 | 801 | 4,767 | 6,896 |
 
 The separate [OxCaml port](https://github.com/iho/once-campfire-oxcaml) has passed the full
-canonical-seed HTTP/Cable preflight in two rounds. It remains omitted from this results table
-until a comparable Linux throughput run is complete.
+canonical-seed HTTP/Cable preflight in two rounds. An exploratory two-round post-message
+comparison on ARM64 Linux measured 347 requests/second for OxCaml and 258 for Express, but
+those images came from dirty working trees and the host differs from the Ryzen reference
+system. The old runner hard-coded OxCaml's reported domain count as one without enforcing or
+recording the effective environment value. It now configures four Eio domains on Linux.
+OxCaml remains omitted from this table until a clean, reproducible run on the reference hardware
+covers the published workloads.
 
 At 100 WebSocket connections and five messages/second, median delivery to every
 connection was 24 ms for Rails and 14 ms for Express. Every message reached every

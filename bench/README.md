@@ -1,10 +1,19 @@
 # Benchmarks
 
 Ruby orchestrates fresh production containers, alternating their order. The common
-[load generator](https://github.com/basecamp/once-campfire-elixir/tree/main/bench)
-is unchanged across implementations. Set `LOADGEN` to its compiled executable,
+[load generator](https://github.com/basecamp/once-campfire-verification/tree/main/loadgen)
+is unchanged across implementations. From this checkout, clone and build its sibling checkout:
+
+```sh
+git clone https://github.com/basecamp/once-campfire-verification.git ../once-campfire-verification
+cargo build --release --locked --manifest-path ../once-campfire-verification/loadgen/Cargo.toml
+```
+
+The runner defaults to `../once-campfire-verification/loadgen/target/release/loadgen`;
+set `LOADGEN` to override that executable,
 `BENCH_ENV_FILE` to the disposable fixture's environment, and `RUBY_IMAGE`,
-`EXPRESS_IMAGE`, and (when benchmarking it) `MOJO_IMAGE` to immutable production image IDs.
+`EXPRESS_IMAGE`, `MOJO_IMAGE`, and (when benchmarking it) `OXCAML_IMAGE` to immutable
+production image IDs.
 
 ```sh
 ruby bench/compare.rb --seed /path/to/parity/seed --concurrencies 16 \
@@ -149,6 +158,10 @@ OXCAML_IMAGE=once-campfire-oxcaml:bench ruby bench/compare.rb --apps oxcaml \
 ```
 
 Set `OXCAML_BENCH_ENV` to a JSON object only for additional image-specific overrides.
+On Linux, the runner configures one OxCaml Eio domain per CPU in `--cpus`; macOS preflight
+defaults to one domain. An explicit `WEB_WORKERS` in
+`OXCAML_BENCH_ENV` overrides either default (integer 1–64), and `summary.json` records the
+configured count as `topology.oxcaml.http_domains`.
 The shared load generator checks authenticated route preflight, exact result windows,
 persisted message writes, Action Text/FTS consistency, SQLite integrity, and Action Cable
 room-stream subscriptions and delivery. OxCaml negotiates gzip for large text responses;
@@ -180,13 +193,21 @@ payloads, non-member denial, and bot boost append/remove Cable delivery. Host-na
 verified read/typing delivery and non-member denial; native event-bus tests cover the bot boost
 events. Its bot API lifecycle also posts a multipart attachment-only message and verifies
 filename fallback, the Rails Active Storage association, and orphan cleanup on bot deletion.
-The production-image WebSocket checks remain pending. The
-OxCaml-only HTTP preflight passes on the canonical seed. Cross-implementation HTTP comparison
-remains unverified: the latest combined run passed OxCaml and failed at Express outsider-session
-authorization; earlier Express runs also exposed a macOS multi-worker SIGBUS. Saturation and
-throughput comparisons remain outstanding. The default throughput command
-requires a Linux host for CPU pinning; macOS should use `--preflight` or
-`--validation-only`.
+Production-image WebSocket mutation/notification checks pass in the OxCaml HTTP preflight; the
+100/500/1,000-client production-image Cable validation has not yet been run. The OxCaml-only
+HTTP preflight passes on the canonical seed. Cross-implementation HTTP preflight remains
+unverified: the latest combined
+run passed OxCaml and failed at Express outsider-session authorization; earlier Express runs also
+exposed a macOS multi-worker SIGBUS. An exploratory two-round `post_message` comparison on an
+ARM64 Linux host measured 347.1 requests/second for OxCaml (355.3, 338.8) and 257.6 for Express
+(302.1, 213.1), with zero timed errors and persisted writes. That run used four pinned server
+CPUs and four pinned client CPUs, but both source trees were dirty and the host differs from the
+Ryzen reference system; it is not a publishable result. The old runner hard-coded OxCaml's
+reported domain count as one without enforcing or recording the effective environment value.
+The runner now defaults OxCaml to four Eio domains on Linux and records the configured count.
+The reference-hardware comparison, clean-source rerun, remaining HTTP workloads, and Cable
+saturation throughput are still outstanding. The default throughput command requires a Linux
+host for CPU pinning; macOS should use `--preflight` or `--validation-only`.
 
 To repeat the current Cable correctness gate:
 

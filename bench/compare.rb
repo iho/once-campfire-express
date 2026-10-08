@@ -60,7 +60,7 @@ linux_host = RUBY_PLATFORM.include?("linux")
 options = { apps: "ruby,express", rounds: 2, duration: 4, concurrencies: "16", port: 25130,
   seed: File.join(workspace, "once-campfire-rust/parity/.seed/default"), preflight: false,
   validation_only: false, save_bodies: false,
-  loadgen: ENV.fetch("LOADGEN", File.join(workspace, "once-campfire-elixir/target/bench/release/loadgen")),
+  loadgen: ENV.fetch("LOADGEN", File.join(workspace, "once-campfire-verification/loadgen/target/release/loadgen")),
   env_file: ENV.fetch("BENCH_ENV_FILE", File.join(workspace, "once-campfire-elixir/parity/reference.env")),
   output: File.join(work, "results"), cpus: linux_host ? "8-11" : "0-3", client_cpus: linux_host ? "12-15" : "4-7", suites: "http", cable_clients: "100,500,1000", cable_tput_secs: 15, routes: "room_show,messages_page,sidebar,search,avatar,static_css,up,post_message" }
 OptionParser.new do |parser|
@@ -74,6 +74,9 @@ OptionParser.new do |parser|
   end
 parser.on("--help") { puts parser; exit }
 end.parse!
+unless File.executable?(options[:loadgen])
+  raise "load generator not executable at #{options[:loadgen]}; build once-campfire-verification/loadgen or set LOADGEN"
+end
 raise "use an even number of rounds" unless options[:rounds].positive? && options[:rounds].even?
 if options[:validation_only]
   raise "validation-only runs require --suites cable" unless options[:suites] == "cable"
@@ -193,10 +196,23 @@ begin
       initial_boosts = sql.call(db, "SELECT COUNT(*) AS n FROM boosts").first.fetch("n")
       config = fixture_env.merge("WEB_CONCURRENCY" => "3", "JOB_CONCURRENCY" => "3", "RAILS_MAX_THREADS" => "5",
         "RAILS_LOG_LEVEL" => "warn", "HTTP_PORT" => options[:port].to_s, "TARGET_PORT" => (options[:port] + 1).to_s)
-      config.merge!(JSON.parse(ENV.fetch("#{app.upcase}_BENCH_ENV", "{}")))
+      app_overrides = JSON.parse(ENV.fetch("#{app.upcase}_BENCH_ENV", "{}"))
+      config.merge!(app_overrides)
       if app == "oxcaml"
         config["CAMPFIRE_STORAGE_PATH"] = "/rails/storage"
         config["HTTP_PORT"] = options[:port].to_s
+        cpu_count = options[:cpus].split(",").sum do |set|
+          first, last = set.split("-", 2).map { |cpu| Integer(cpu, 10) }
+          last ||= first
+          raise "invalid CPU set: #{options[:cpus]}" if first.negative? || last < first
+
+          last - first + 1
+        end
+        default_domains = linux_host ? cpu_count : 1
+        domains = Integer(app_overrides.fetch("WEB_WORKERS", default_domains))
+        raise "OXCAML_BENCH_ENV WEB_WORKERS must be between 1 and 64" unless (1..64).cover?(domains)
+
+        config["WEB_WORKERS"] = domains.to_s
       end
       if app == "django"
         redis_image = ENV.fetch("DJANGO_REDIS_IMAGE", "redis:7.2-alpine")
@@ -209,7 +225,7 @@ begin
       config["HTTP_WORKERS"] ||= "4" if app == "mojo"
       metadata[:topology] ||= {}
       metadata[:topology][app] = app == "express" ? {http_workers: config.fetch("WEB_WORKERS", "3"), cable: "native ws with cluster IPC", jobs: "leased auxiliary SQLite"} : app == "django" ? {http_workers: config.fetch("WEB_WORKERS"), cable: "ASGI with isolated Redis", jobs: "leased auxiliary SQLite"} :
-        app == "laravel" ? {http_workers: 8, http: "nginx/FPM OPcache", cable: "native Workerman", jobs: "auxiliary SQLite queue worker"} : app == "mojo" ? {http_workers: config.fetch("HTTP_WORKERS"), image_config: "MOJO_BENCH_ENV", http: "native Mojo server", cable: "native WebSocket with per-worker SQLite polling"} : app == "oxcaml" ? {http_workers: 1, runtime: "OxCaml/Eio", cable: "Action Cable protocol over RFC 6455 with in-process Eio event bus"} : {http_workers: 3, threads: 5, http: "Thruster/Puma", cable: "native Rails", jobs: "native Ruby Redis"}
+        app == "laravel" ? {http_workers: 8, http: "nginx/FPM OPcache", cable: "native Workerman", jobs: "auxiliary SQLite queue worker"} : app == "mojo" ? {http_workers: config.fetch("HTTP_WORKERS"), image_config: "MOJO_BENCH_ENV", http: "native Mojo server", cable: "native WebSocket with per-worker SQLite polling"} : app == "oxcaml" ? {http_domains: config.fetch("WEB_WORKERS", "1"), runtime: "OxCaml/Eio", cable: "Action Cable protocol over RFC 6455 with in-process Eio event bus"} : {http_workers: 3, threads: 5, http: "Thruster/Puma", cable: "native Rails", jobs: "native Ruby Redis"}
       if app == "mojo"
         image_labels = metadata[:image_labels][app] || {}
         metadata[:topology][app][:compiler_version] = image_labels.fetch("org.modular.mojo.version", "unknown")
