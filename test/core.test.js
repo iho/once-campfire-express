@@ -359,6 +359,22 @@ test("inline native attachments preserve rich text ownership, private authorizat
   );
   assert.equal(plainText(html), "Attachment [private.txt]");
   assert.ok(String(messageData([message])[0].HTML).includes(blobUrl(blob)));
+  const videoMessage = domain.createMessage(
+    privateRoom.id,
+    member.id,
+    "video attachment",
+  );
+  storeUpload(
+    {
+      buffer: Buffer.from("video bytes"),
+      originalname: "preview.mp4",
+      mimetype: "video/mp4",
+    },
+    "Message",
+    videoMessage.id,
+    "attachment",
+  );
+  assert.match(String(messageData([videoMessage])[0].HTML), /preload="none"/);
   domain.deleteMessage(message, { broadcast: false });
   assert.equal(
     get(

@@ -116,7 +116,7 @@ export function messageData(messages, origin = "") {
       )
         body = `<a href="${url}" data-lightbox-target="image" data-action="lightbox#open" data-lightbox-url-value="${url}?disposition=attachment"><img class="message__attachment" src="${representationUrl(blob)}" alt="${name}" loading="lazy"></a>`;
       else if ((blob.content_type || "").startsWith("video/"))
-        body = `<video src="${url}" poster="${representationUrl(blob)}" controls class="message__attachment"></video>`;
+        body = `<video src="${url}" poster="${representationUrl(blob)}" controls preload="none" class="message__attachment"></video>`;
       else body = `<a href="${url}?disposition=attachment">${name}</a>`;
     }
     return {
