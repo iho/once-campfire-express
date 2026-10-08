@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: iho/once-campfire-oxcaml
-          ref: a67513b4f4a8d71749b0c45dcde462b012e73ccf
+          ref: 73ab3b1
           path: once-campfire-oxcaml
           submodules: true
       - uses: actions/setup-node@v4
